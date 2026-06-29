@@ -1,0 +1,17 @@
+{
+  "name": "@a11y-agent/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'web build skipped (no vite yet)'",
+    "dev": "echo 'web dev skipped'",
+    "lint": "eslint src/",
+    "test": "echo 'no tests yet'",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.8",
+    "vitest": "^3"
+  }
+}
