@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerScreenshotTool } from './tools/screenshot.js';
+import { registerAccessibilityTreeTool } from './tools/accessibility-tree.js';
 
 export const server = new McpServer({
   name: 'a11y-agent-mcp',
@@ -8,6 +9,7 @@ export const server = new McpServer({
 });
 
 registerScreenshotTool(server);
+registerAccessibilityTreeTool(server);
 
 async function main() {
   const transport = new StdioServerTransport();
