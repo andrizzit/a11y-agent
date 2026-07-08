@@ -5,6 +5,7 @@ import { registerAccessibilityTreeTool } from './tools/accessibility-tree.js';
 import { registerTabOrderTool } from './tools/tab-order.js';
 import { registerCheckContrastTool } from './tools/check-contrast.js';
 import { registerCheckHeadingHierarchyTool } from './tools/check-heading-hierarchy.js';
+import { registerSimulateScreenReaderTool } from './tools/simulate-screen-reader.js';
 
 export const server = new McpServer({
   name: 'a11y-agent-mcp',
@@ -16,6 +17,7 @@ registerAccessibilityTreeTool(server);
 registerTabOrderTool(server);
 registerCheckContrastTool(server);
 registerCheckHeadingHierarchyTool(server);
+registerSimulateScreenReaderTool(server);
 
 async function main() {
   const transport = new StdioServerTransport();
