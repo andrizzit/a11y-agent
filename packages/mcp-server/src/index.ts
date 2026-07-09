@@ -6,6 +6,7 @@ import { registerTabOrderTool } from './tools/tab-order.js';
 import { registerCheckContrastTool } from './tools/check-contrast.js';
 import { registerCheckHeadingHierarchyTool } from './tools/check-heading-hierarchy.js';
 import { registerSimulateScreenReaderTool } from './tools/simulate-screen-reader.js';
+import { registerCheckFocusVisibleTool } from './tools/check-focus-visible.js';
 
 export const server = new McpServer({
   name: 'a11y-agent-mcp',
@@ -18,6 +19,7 @@ registerTabOrderTool(server);
 registerCheckContrastTool(server);
 registerCheckHeadingHierarchyTool(server);
 registerSimulateScreenReaderTool(server);
+registerCheckFocusVisibleTool(server);
 
 async function main() {
   const transport = new StdioServerTransport();
