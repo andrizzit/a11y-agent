@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Page</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background: white; color: #333; }
+    h1 { color: #111; }
+    a { color: #0066cc; }
+    a:focus { outline: 2px solid #0066cc; }
+    button:focus { outline: 2px solid blue; }
+    .low-contrast { color: #ccc; background: #fff; }
+    .skip-heading { margin-top: 20px; }
+    nav { margin: 20px 0; }
+    input:focus { border-color: blue; outline: 2px solid blue; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Main Heading</h1>
+    <nav aria-label="Main navigation">
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Section One</h2>
+    <p>Normal contrast paragraph text.</p>
+    <p class="low-contrast">This text has low contrast.</p>
+
+    <h2>Section Two</h2>
+    <h4 class="skip-heading">Skipped h3 level</h4>
+    <p>Another paragraph.</p>
+
+    <form>
+      <label for="name">Name</label>
+      <input type="text" id="name" aria-required="true" />
+      <button type="submit">Submit</button>
+    </form>
+  </main>
+
+  <footer>
+    <p>Footer content</p>
+  </footer>
+</body>
+</html>

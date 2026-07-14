@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Page</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .hidden { display: none; }
+    dialog { padding: 20px; border: 1px solid #ccc; }
+    button:focus { outline: 2px solid blue; }
+  </style>
+</head>
+<body>
+  <button id="toggle-btn" aria-expanded="false" onclick="toggleMenu()">Menu</button>
+  <ul id="menu" role="menu" aria-hidden="true" class="hidden">
+    <li role="menuitem">Item 1</li>
+    <li role="menuitem">Item 2</li>
+    <li role="menuitem">Item 3</li>
+  </ul>
+
+  <input id="search" type="text" placeholder="Search..." />
+
+  <button id="open-dialog" onclick="document.getElementById('dlg').showModal()">Open Dialog</button>
+  <dialog id="dlg" role="dialog" aria-label="Test Dialog">
+    <p>Dialog content</p>
+    <button onclick="this.closest('dialog').close()">Close</button>
+  </dialog>
+
+  <script>
+    function toggleMenu() {
+      const btn = document.getElementById('toggle-btn');
+      const menu = document.getElementById('menu');
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      menu.setAttribute('aria-hidden', String(expanded));
+      menu.classList.toggle('hidden');
+    }
+  </script>
+</body>
+</html>
