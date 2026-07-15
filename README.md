@@ -1,0 +1,111 @@
+# a11y-agent
+
+An AI-powered accessibility auditor that uses an autonomous agent to analyze websites for WCAG compliance issues. The agent controls a headless browser through custom MCP tools — checking contrast, heading structure, keyboard navigation, focus indicators, and screen reader compatibility.
+
+## Architecture
+
+```
+┌──────────────┐       ┌──────────────┐       ┌──────────────────┐
+│ React SPA    │       │ App Runner   │       │ Agent Worker     │
+│ (S3/CF)      │──────▶│ (API)        │──────▶│ - Strands Agent  │
+└──────────────┘  SSE  └──────────────┘       │ - MCP Server     │
+                                              │ - Playwright     │
+                       ┌──────────────┐       │ - Bedrock/Claude │
+                       │ DynamoDB     │◀──────└──────────────────┘
+                       └──────────────┘
+```
+
+The agent (Claude on Bedrock) decides which checks to run and interprets results. The MCP server provides the tools — each one does a specific accessibility analysis using a real headless browser.
+
+## MCP Tools
+
+| Tool | What it checks |
+|------|---------------|
+| `screenshot` | Capture page as PNG for visual analysis |
+| `get_accessibility_tree` | Extract what assistive tech actually sees (CDP) |
+| `get_tab_order` | Simulate Tab navigation, detect keyboard traps |
+| `check_contrast` | WCAG 2.1 color contrast (AA/AAA) |
+| `check_heading_hierarchy` | Heading nesting (h1-h6) |
+| `simulate_screen_reader` | Screen reader announcement sequence |
+| `check_focus_visible` | Visible focus indicators (WCAG 2.4.7) |
+| `interact` | Click/hover/type to test dynamic UI states |
+| `navigate` | Browser navigation |
+| `resize_viewport` | Responsive layout testing |
+
+## Tech Stack
+
+- **Monorepo:** Turborepo + pnpm workspaces
+- **MCP Server:** @modelcontextprotocol/sdk, Playwright, Zod
+- **Agent:** Strands Agents SDK + Amazon Bedrock (Claude Sonnet)
+- **API:** Express/Fastify with SSE streaming
+- **Frontend:** React + Vite + TailwindCSS
+- **Infrastructure:** AWS CDK (App Runner, DynamoDB, S3, CloudFront)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 11+
+- AWS credentials with Bedrock access (for the agent)
+
+### Setup
+
+```bash
+git clone https://github.com/andrizzit/a11y-agent.git
+cd a11y-agent
+pnpm install
+
+# Copy and configure environment
+cp .env.example .env
+```
+
+### Build
+
+```bash
+pnpm build
+```
+
+### Use the MCP Server standalone
+
+The MCP server works with any MCP-compatible client (Claude Desktop, etc.):
+
+```json
+{
+  "mcpServers": {
+    "a11y-agent": {
+      "command": "node",
+      "args": ["packages/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+### Run tests
+
+```bash
+pnpm test
+```
+
+## Project Structure
+
+```
+packages/
+├── mcp-server/   # MCP tools (Playwright + CDP)
+├── agent/        # Strands Agent (Bedrock/Claude)
+├── api/          # REST API + SSE streaming
+└── web/          # React frontend
+```
+
+## Status
+
+- [x] MCP Server — 10 tools, tested, documented
+- [x] Agent bootstrap — Strands + Bedrock wired
+- [ ] Agent audit orchestration
+- [ ] Backend API with SSE
+- [ ] Frontend
+- [ ] AWS deployment (CDK)
+
+## License
+
+MIT
