@@ -106,6 +106,30 @@ packages/
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
 
+## References
+
+### Standards
+
+- [WCAG 2.1](https://www.w3.org/TR/WCAG21/) — Web Content Accessibility Guidelines
+- [WCAG 2.2](https://www.w3.org/TR/WCAG22/) — Latest version (2023)
+- [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) — Design patterns for accessible widgets
+- [ARIA in HTML](https://www.w3.org/TR/html-aria/) — Which ARIA roles/attributes are allowed on HTML elements
+
+### Key WCAG Criteria Covered
+
+- [1.3.1 Info and Relationships](https://www.w3.org/WAI/WCAG21/Understanding/info-and-relationships) — heading hierarchy
+- [1.4.3 Contrast (Minimum)](https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum) — 4.5:1 ratio
+- [2.1.1 Keyboard](https://www.w3.org/WAI/WCAG21/Understanding/keyboard) — tab order, keyboard traps
+- [2.4.7 Focus Visible](https://www.w3.org/WAI/WCAG21/Understanding/focus-visible) — visible focus indicators
+- [4.1.2 Name, Role, Value](https://www.w3.org/WAI/WCAG21/Understanding/name-role-value) — accessibility tree
+
+### Tools & Protocols
+
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) — open standard for AI tool integration
+- [Strands Agents SDK](https://github.com/strands-agents/sdk-typescript) — TypeScript agent framework
+- [Playwright](https://playwright.dev/) — browser automation
+- [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) — low-level browser API
+
 ## License
 
 MIT
