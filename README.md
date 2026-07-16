@@ -101,6 +101,7 @@ packages/
 
 - [x] MCP Server — 10 tools, tested, documented
 - [x] Agent bootstrap — Strands + Bedrock wired
+- [x] Agent ↔ MCP connection — agent discovers and calls all 10 tools
 - [ ] Agent audit orchestration
 - [ ] Backend API with SSE
 - [ ] Frontend

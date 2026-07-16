@@ -1,14 +1,10 @@
-import { Agent } from '@strands-agents/sdk';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Agent, McpClient } from '@strands-agents/sdk';
 import { BedrockModel } from '@strands-agents/sdk/models/bedrock';
-import { tool } from '@strands-agents/sdk';
 
-const helloTool = tool({
-  name: 'hello',
-  description: 'A test tool that greets the user',
-  callback: async () => {
-    return { message: 'Hello from the a11y-agent!' };
-  },
-});
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const mcpServerPath = resolve(__dirname, '../../mcp-server/dist/index.js');
 
 const model = new BedrockModel({
   modelId: 'us.anthropic.claude-sonnet-4-20250514',
@@ -17,21 +13,37 @@ const model = new BedrockModel({
   temperature: 0.3,
 });
 
-const agent = new Agent({
-  name: 'a11y-agent',
-  description: 'An AI-powered accessibility auditor',
-  model,
-  tools: [helloTool],
-  systemPrompt: 'You are an accessibility auditing assistant. When asked to greet, use the hello tool.',
-});
+export async function createAgent() {
+  const mcpServers = await McpClient.loadServers({
+    'a11y-mcp': {
+      command: 'node',
+      args: [mcpServerPath],
+    },
+  });
 
-export { agent, model };
+  const agent = new Agent({
+    name: 'a11y-agent',
+    description: 'An AI-powered accessibility auditor',
+    model,
+    tools: mcpServers,
+    systemPrompt: 'You are an accessibility auditing assistant. You have access to tools that can analyze web pages for WCAG accessibility issues. Use them to audit URLs when asked.',
+  });
+
+  return { agent, mcpServers };
+}
 
 async function main() {
-  const result = await agent.invoke('Say hello using your tool.');
-  console.log('\n--- Agent Result ---');
-  console.log('Stop reason:', result.stopReason);
-  console.log('Last message:', JSON.stringify(result.lastMessage.content, null, 2));
+  const { agent, mcpServers } = await createAgent();
+
+  try {
+    const result = await agent.invoke('List all the tools you have available and briefly describe what each one does.');
+    console.log('\n--- Agent Result ---');
+    console.log('Stop reason:', result.stopReason);
+  } finally {
+    for (const server of mcpServers) {
+      await server.disconnect();
+    }
+  }
 }
 
 const isDirectRun = process.argv[1]?.endsWith('index.js');
