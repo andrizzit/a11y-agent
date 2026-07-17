@@ -2,6 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Agent, McpClient } from '@strands-agents/sdk';
 import { BedrockModel } from '@strands-agents/sdk/models/bedrock';
+import { SYSTEM_PROMPT } from './system-prompt.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const mcpServerPath = resolve(__dirname, '../../mcp-server/dist/index.js');
@@ -26,17 +27,23 @@ export async function createAgent() {
     description: 'An AI-powered accessibility auditor',
     model,
     tools: mcpServers,
-    systemPrompt: 'You are an accessibility auditing assistant. You have access to tools that can analyze web pages for WCAG accessibility issues. Use them to audit URLs when asked.',
+    systemPrompt: SYSTEM_PROMPT,
   });
 
   return { agent, mcpServers };
 }
 
 async function main() {
+  const url = process.argv[2];
+  if (!url) {
+    console.error('Usage: node dist/index.js <url>');
+    process.exit(1);
+  }
+
   const { agent, mcpServers } = await createAgent();
 
   try {
-    const result = await agent.invoke('List all the tools you have available and briefly describe what each one does.');
+    const result = await agent.invoke(`Audit this URL for accessibility issues: ${url}`);
     console.log('\n--- Agent Result ---');
     console.log('Stop reason:', result.stopReason);
   } finally {
