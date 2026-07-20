@@ -1,4 +1,5 @@
 import { createAgent } from './index.js';
+import type { AuditReport } from './schema.js';
 
 export interface AuditOptions {
   url: string;
@@ -8,6 +9,7 @@ export interface AuditOptions {
 export interface AuditResult {
   url: string;
   stopReason: string;
+  report: AuditReport | null;
   output: string;
   durationMs: number;
 }
@@ -30,9 +32,12 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       .filter((block: any) => block.type === 'textBlock')
       .map((block: any) => block.text);
 
+    const report = (result.structuredOutput as AuditReport) ?? null;
+
     return {
       url,
       stopReason: result.stopReason,
+      report,
       output: textBlocks.join('\n'),
       durationMs: Date.now() - start,
     };

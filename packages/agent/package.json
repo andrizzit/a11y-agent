@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@a11y-agent/mcp-server": "workspace:*",
-    "@strands-agents/sdk": "^1.9.0"
+    "@strands-agents/sdk": "^1.9.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

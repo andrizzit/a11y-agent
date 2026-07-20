@@ -104,6 +104,7 @@ packages/
 - [x] Agent ↔ MCP connection — agent discovers and calls all 10 tools
 - [x] Agent system prompt — audit methodology, severity model, structured output format
 - [x] Agent audit orchestration — `runAudit(url)` entry point with viewport option
+- [x] Structured output — Zod-validated `AuditReport` schema (findings, severity, WCAG criteria)
 - [ ] Backend API with SSE
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
