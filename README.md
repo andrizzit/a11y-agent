@@ -103,7 +103,7 @@ packages/
 - [x] Agent bootstrap — Strands + Bedrock wired
 - [x] Agent ↔ MCP connection — agent discovers and calls all 10 tools
 - [x] Agent system prompt — audit methodology, severity model, structured output format
-- [ ] Agent audit orchestration
+- [x] Agent audit orchestration — `runAudit(url)` entry point with viewport option
 - [ ] Backend API with SSE
 - [ ] Frontend
 - [ ] AWS deployment (CDK)

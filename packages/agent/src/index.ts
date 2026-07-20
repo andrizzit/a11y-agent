@@ -33,6 +33,8 @@ export async function createAgent() {
   return { agent, mcpServers };
 }
 
+export { runAudit, type AuditOptions, type AuditResult } from './audit.js';
+
 async function main() {
   const url = process.argv[2];
   if (!url) {
@@ -40,17 +42,14 @@ async function main() {
     process.exit(1);
   }
 
-  const { agent, mcpServers } = await createAgent();
+  const { runAudit } = await import('./audit.js');
+  const result = await runAudit({ url });
 
-  try {
-    const result = await agent.invoke(`Audit this URL for accessibility issues: ${url}`);
-    console.log('\n--- Agent Result ---');
-    console.log('Stop reason:', result.stopReason);
-  } finally {
-    for (const server of mcpServers) {
-      await server.disconnect();
-    }
-  }
+  console.log('\n--- Audit Result ---');
+  console.log('URL:', result.url);
+  console.log('Duration:', `${(result.durationMs / 1000).toFixed(1)}s`);
+  console.log('Stop reason:', result.stopReason);
+  console.log('\n' + result.output);
 }
 
 const isDirectRun = process.argv[1]?.endsWith('index.js');
