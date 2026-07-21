@@ -105,6 +105,7 @@ packages/
 - [x] Agent system prompt — audit methodology, severity model, structured output format
 - [x] Agent audit orchestration — `runAudit(url)` entry point with viewport option
 - [x] Structured output — Zod-validated `AuditReport` schema (findings, severity, WCAG criteria)
+- [x] Visual analysis — screenshot-first methodology for layout/spacing/target size issues
 - [ ] Backend API with SSE
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
