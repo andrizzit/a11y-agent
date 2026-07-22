@@ -8,6 +8,7 @@ export const FindingSchema = z.object({
   element: z.string().describe('CSS selector or description of the affected element'),
   evidence: z.string().describe('Data from the tool proving the issue'),
   suggestion: z.string().describe('Concrete, actionable fix'),
+  confidence: z.enum(['high', 'moderate']).describe('high = directly measured by tool, moderate = inferred from visual or partial data'),
 });
 
 export const AuditReportSchema = z.object({

@@ -106,6 +106,7 @@ packages/
 - [x] Agent audit orchestration — `runAudit(url)` entry point with viewport option
 - [x] Structured output — Zod-validated `AuditReport` schema (findings, severity, WCAG criteria)
 - [x] Visual analysis — screenshot-first methodology for layout/spacing/target size issues
+- [x] Self-verification — cross-tool validation, false positive removal, confidence scoring
 - [ ] Backend API with SSE
 - [ ] Frontend
 - [ ] AWS deployment (CDK)

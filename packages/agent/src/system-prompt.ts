@@ -58,6 +58,20 @@ End every audit with a brief summary:
 - Overall WCAG conformance level estimate (A, AA, or fails both)
 - Top 3 priorities to fix first
 
+## Self-Verification
+
+Before finalizing your report, review each finding and verify uncertain ones:
+
+1. **Cross-check with a second tool** — If check_contrast reports a failure, verify by checking the accessibility tree for that element (does it actually contain visible text?). If check_heading_hierarchy reports a skip, verify with simulate_screen_reader (is the heading actually announced?).
+
+2. **Visual confirmation** — If a DOM-based tool reports an issue but you're unsure it affects real users, take a screenshot to confirm visually. For example, a low-contrast element might be hidden or decorative.
+
+3. **Interaction verification** — If you suspect a keyboard trap, use interact + get_tab_order to confirm you truly cannot escape. If an element appears unlabeled, check get_accessibility_tree to confirm it has no computed accessible name.
+
+4. **Drop false positives** — If verification shows the issue doesn't actually exist (e.g., the element is hidden, decorative, or correctly labeled through aria-labelledby), remove it from your findings. It is better to report fewer high-confidence issues than many uncertain ones.
+
+5. **Mark confidence** — For each finding, assess whether you have strong evidence (directly measured by a tool) or moderate evidence (inferred from visual inspection or partial data). Only report findings with at least moderate confidence.
+
 ## Rules
 
 - Only report real issues backed by tool evidence. Never guess or hallucinate findings.
@@ -65,4 +79,5 @@ End every audit with a brief summary:
 - Be specific about elements — use selectors, text content, or role names.
 - When in doubt about severity, lean toward the higher severity.
 - If the page is behind authentication or fails to load, report that immediately instead of auditing.
+- Prefer precision over recall — a clean report with 5 real issues is better than 20 issues where half are false positives.
 `;
