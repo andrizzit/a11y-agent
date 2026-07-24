@@ -7,12 +7,16 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "start": "node dist/index.js",
     "lint": "eslint src/",
     "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@a11y-agent/agent": "workspace:*"
+    "@a11y-agent/agent": "workspace:*",
+    "@fastify/cors": "^11.3.0",
+    "@types/node": "^26.1.1",
+    "fastify": "^5.10.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

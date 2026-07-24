@@ -107,7 +107,8 @@ packages/
 - [x] Structured output — Zod-validated `AuditReport` schema (findings, severity, WCAG criteria)
 - [x] Visual analysis — screenshot-first methodology for layout/spacing/target size issues
 - [x] Self-verification — cross-tool validation, false positive removal, confidence scoring
-- [ ] Backend API with SSE
+- [x] Backend API skeleton — Fastify, POST/GET /audits, async job queue, health check
+- [ ] Backend API with SSE streaming
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
 
