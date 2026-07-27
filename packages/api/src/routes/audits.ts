@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import { createJob, getJob, listJobs, updateJob } from '../jobs.js';
+import type { JobStore } from '../store.js';
 import { runAudit } from '@a11y-agent/agent';
 
 export async function auditsRoutes(app: FastifyInstance) {
+  const store: JobStore = app.store;
+
   app.post<{ Body: { url: string; viewport?: { width: number; height: number } } }>(
     '/audits',
     {
@@ -25,18 +27,18 @@ export async function auditsRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { url, viewport } = request.body;
-      const job = createJob(url);
+      const job = await store.create(url);
 
       setImmediate(async () => {
-        updateJob(job.id, { status: 'running' });
+        await store.update(job.id, { status: 'running' });
         try {
           const result = await runAudit({ url, viewport });
-          updateJob(job.id, {
+          await store.update(job.id, {
             status: 'complete',
             report: result.report ?? result.output,
           });
         } catch (err) {
-          updateJob(job.id, {
+          await store.update(job.id, {
             status: 'failed',
             error: err instanceof Error ? err.message : 'Unknown error',
           });
@@ -50,7 +52,7 @@ export async function auditsRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>(
     '/audits/:id',
     async (request, reply) => {
-      const job = getJob(request.params.id);
+      const job = await store.get(request.params.id);
       if (!job) {
         return reply.status(404).send({ error: 'Job not found' });
       }
@@ -59,6 +61,6 @@ export async function auditsRoutes(app: FastifyInstance) {
   );
 
   app.get('/audits', async () => {
-    return listJobs();
+    return store.list();
   });
 }
