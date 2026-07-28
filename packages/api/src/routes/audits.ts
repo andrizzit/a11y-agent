@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { JobStore } from '../store.js';
+import { auditEvents } from '../events.js';
 import { runAudit } from '@a11y-agent/agent';
 
 export async function auditsRoutes(app: FastifyInstance) {
@@ -31,16 +32,27 @@ export async function auditsRoutes(app: FastifyInstance) {
 
       setImmediate(async () => {
         await store.update(job.id, { status: 'running' });
+        auditEvents.emit(job.id, {
+          type: 'status_change',
+          data: { status: 'running' },
+        });
+
         try {
           const result = await runAudit({ url, viewport });
           await store.update(job.id, {
             status: 'complete',
             report: result.report ?? result.output,
           });
+          auditEvents.emit(job.id, {
+            type: 'complete',
+            data: { status: 'complete', report: result.report ?? result.output },
+          });
         } catch (err) {
-          await store.update(job.id, {
-            status: 'failed',
-            error: err instanceof Error ? err.message : 'Unknown error',
+          const error = err instanceof Error ? err.message : 'Unknown error';
+          await store.update(job.id, { status: 'failed', error });
+          auditEvents.emit(job.id, {
+            type: 'error',
+            data: { status: 'failed', error },
           });
         }
       });

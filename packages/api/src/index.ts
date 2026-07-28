@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { createStore } from './store-factory.js';
 import { auditsRoutes } from './routes/audits.js';
+import { streamRoutes } from './routes/stream.js';
 import type { JobStore } from './store.js';
 
 declare module 'fastify' {
@@ -17,6 +18,7 @@ app.decorate('store', store);
 
 await app.register(cors, { origin: true });
 await app.register(auditsRoutes);
+await app.register(streamRoutes);
 
 app.get('/health', async () => ({ status: 'ok' }));
 

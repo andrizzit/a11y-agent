@@ -109,7 +109,7 @@ packages/
 - [x] Self-verification — cross-tool validation, false positive removal, confidence scoring
 - [x] Backend API skeleton — Fastify, POST/GET /audits, async job queue, health check
 - [x] DynamoDB job storage — pluggable store (DynamoDB or in-memory fallback)
-- [ ] Backend API with SSE streaming
+- [x] SSE streaming — `GET /audits/:id/stream` pushes real-time progress events
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
 

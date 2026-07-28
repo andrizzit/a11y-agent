@@ -1,4 +1,14 @@
-import type { Job, JobStatus } from './jobs.js';
+export type JobStatus = 'queued' | 'running' | 'complete' | 'failed';
+
+export interface Job {
+  id: string;
+  url: string;
+  status: JobStatus;
+  createdAt: string;
+  updatedAt: string;
+  report?: unknown;
+  error?: string;
+}
 
 export interface JobStore {
   create(url: string): Promise<Job>;
@@ -6,5 +16,3 @@ export interface JobStore {
   update(id: string, updates: Partial<Omit<Job, 'id' | 'createdAt'>>): Promise<Job | undefined>;
   list(): Promise<Job[]>;
 }
-
-export type { Job, JobStatus };
