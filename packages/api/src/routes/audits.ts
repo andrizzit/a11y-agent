@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { JobStore } from '../store.js';
 import { auditEvents } from '../events.js';
-import { runAudit } from '@a11y-agent/agent';
+import { runAudit, type AuditEvent } from '@a11y-agent/agent';
 
 export async function auditsRoutes(app: FastifyInstance) {
   const store: JobStore = app.store;
@@ -38,7 +38,16 @@ export async function auditsRoutes(app: FastifyInstance) {
         });
 
         try {
-          const result = await runAudit({ url, viewport });
+          const result = await runAudit({
+            url,
+            viewport,
+            onEvent: (event: AuditEvent) => {
+              auditEvents.emit(job.id, {
+                type: event.type === 'tool_start' ? 'tool_start' : 'tool_complete',
+                data: event,
+              });
+            },
+          });
           await store.update(job.id, {
             status: 'complete',
             report: result.report ?? result.output,

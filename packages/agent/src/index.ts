@@ -35,7 +35,7 @@ export async function createAgent() {
   return { agent, mcpServers };
 }
 
-export { runAudit, type AuditOptions, type AuditResult } from './audit.js';
+export { runAudit, type AuditOptions, type AuditResult, type AuditEvent, type AuditEventType } from './audit.js';
 export { AuditReportSchema, FindingSchema, type AuditReport, type Finding } from './schema.js';
 
 async function main() {

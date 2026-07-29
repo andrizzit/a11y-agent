@@ -110,6 +110,7 @@ packages/
 - [x] Backend API skeleton — Fastify, POST/GET /audits, async job queue, health check
 - [x] DynamoDB job storage — pluggable store (DynamoDB or in-memory fallback)
 - [x] SSE streaming — `GET /audits/:id/stream` pushes real-time progress events
+- [x] Agent event hooks — tool_start/tool_complete events relayed from agent loop to SSE
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
 
