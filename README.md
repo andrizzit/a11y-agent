@@ -111,6 +111,7 @@ packages/
 - [x] DynamoDB job storage — pluggable store (DynamoDB or in-memory fallback)
 - [x] SSE streaming — `GET /audits/:id/stream` pushes real-time progress events
 - [x] Agent event hooks — tool_start/tool_complete events relayed from agent loop to SSE
+- [x] Auth + rate limiting — API key middleware (X-Api-Key/Bearer), configurable rate limit
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
 
