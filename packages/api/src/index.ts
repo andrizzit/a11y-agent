@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { createStore } from './store-factory.js';
 import { auditsRoutes } from './routes/audits.js';
 import { streamRoutes } from './routes/stream.js';
@@ -19,6 +21,22 @@ const store = createStore();
 app.decorate('store', store);
 
 await app.register(cors, { origin: true });
+await app.register(swagger, {
+  openapi: {
+    info: {
+      title: 'a11y-agent API',
+      version: '0.1.0',
+      description: 'AI-powered accessibility auditor API',
+    },
+    components: {
+      securitySchemes: {
+        apiKey: { type: 'apiKey', name: 'X-Api-Key', in: 'header' },
+      },
+    },
+    security: [{ apiKey: [] }],
+  },
+});
+await app.register(swaggerUi, { routePrefix: '/docs' });
 await app.register(rateLimit, {
   max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),
   timeWindow: '1 minute',

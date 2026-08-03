@@ -112,6 +112,7 @@ packages/
 - [x] SSE streaming — `GET /audits/:id/stream` pushes real-time progress events
 - [x] Agent event hooks — tool_start/tool_complete events relayed from agent loop to SSE
 - [x] Auth + rate limiting — API key middleware (X-Api-Key/Bearer), configurable rate limit
+- [x] API tests + OpenAPI — 11 integration tests, Swagger UI at `/docs`
 - [ ] Frontend
 - [ ] AWS deployment (CDK)
 
