@@ -113,7 +113,7 @@ packages/
 - [x] Agent event hooks — tool_start/tool_complete events relayed from agent loop to SSE
 - [x] Auth + rate limiting — API key middleware (X-Api-Key/Bearer), configurable rate limit
 - [x] API tests + OpenAPI — 11 integration tests, Swagger UI at `/docs`
-- [ ] Frontend
+- [x] Frontend scaffold — React + Vite + TailwindCSS, URL input form, API proxy
 - [ ] AWS deployment (CDK)
 
 ## References
