@@ -114,6 +114,7 @@ packages/
 - [x] Auth + rate limiting — API key middleware (X-Api-Key/Bearer), configurable rate limit
 - [x] API tests + OpenAPI — 11 integration tests, Swagger UI at `/docs`
 - [x] Frontend scaffold — React + Vite + TailwindCSS, URL input form, API proxy
+- [x] SSE streaming UI — submit audit, live progress with tool steps and timing
 - [ ] AWS deployment (CDK)
 
 ## References
