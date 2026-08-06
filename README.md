@@ -115,6 +115,7 @@ packages/
 - [x] API tests + OpenAPI — 11 integration tests, Swagger UI at `/docs`
 - [x] Frontend scaffold — React + Vite + TailwindCSS, URL input form, API proxy
 - [x] SSE streaming UI — submit audit, live progress with tool steps and timing
+- [x] Results view — findings cards with severity badges, WCAG criteria, evidence, summary stats
 - [ ] AWS deployment (CDK)
 
 ## References

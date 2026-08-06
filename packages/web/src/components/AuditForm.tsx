@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuditStream } from '../hooks/useAuditStream.ts';
 import { AuditProgress } from './AuditProgress.tsx';
+import { AuditResults } from './AuditResults.tsx';
 
 export function AuditForm() {
   const [url, setUrl] = useState('');
@@ -57,14 +58,17 @@ export function AuditForm() {
       )}
 
       {status === 'complete' && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-          Audit complete!
-          <button
-            onClick={reset}
-            className="ml-3 underline hover:no-underline"
-          >
-            Run another
-          </button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-green-700">Audit complete</span>
+            <button
+              onClick={reset}
+              className="text-sm text-blue-600 underline hover:no-underline"
+            >
+              Run another audit
+            </button>
+          </div>
+          {report != null && <AuditResults report={report} />}
         </div>
       )}
     </div>
