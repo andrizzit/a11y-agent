@@ -64,9 +64,9 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   try {
     const result = await agent.invoke(prompt);
 
-    const textBlocks = result.lastMessage.content
-      .filter((block: any) => block.type === 'textBlock')
-      .map((block: any) => block.text);
+    const textBlocks = result.lastMessage.content.flatMap((block) =>
+      block.type === 'textBlock' ? [block.text] : []
+    );
 
     const report = (result.structuredOutput as AuditReport) ?? null;
 

@@ -5,7 +5,6 @@ import rateLimit from '@fastify/rate-limit';
 import { createMemoryStore } from '../store-memory.js';
 import { auditsRoutes } from '../routes/audits.js';
 import { streamRoutes } from '../routes/stream.js';
-import { apiKeyAuth } from '../auth.js';
 import type { JobStore } from '../store.js';
 
 declare module 'fastify' {

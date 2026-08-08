@@ -43,7 +43,7 @@ describe('get_accessibility_tree', () => {
     const { nodes } = await client.send('Accessibility.getFullAXTree');
 
     expect(nodes.length).toBeGreaterThan(0);
-    const root = nodes.find((n: any) => !n.parentId);
+    const root = nodes.find(n => !n.parentId);
     expect(root).toBeDefined();
     expect(root!.role.value).toBe('RootWebArea');
   });
@@ -53,7 +53,7 @@ describe('get_accessibility_tree', () => {
     const client = await page.context().newCDPSession(page);
     const { nodes } = await client.send('Accessibility.getFullAXTree');
 
-    const headings = nodes.filter((n: any) => n.role?.value === 'heading');
+    const headings = nodes.filter(n => n.role?.value === 'heading');
     expect(headings.length).toBeGreaterThanOrEqual(3);
   });
 });
@@ -187,11 +187,11 @@ describe('simulate_screen_reader', () => {
     const { nodes } = await client.send('Accessibility.getFullAXTree');
 
     const announceable = nodes.filter(
-      (n: any) => !n.ignored && n.role?.value && n.role.value !== 'none' && n.role.value !== 'generic'
+      n => !n.ignored && n.role?.value && n.role.value !== 'none' && n.role.value !== 'generic'
     );
 
     expect(announceable.length).toBeGreaterThan(0);
-    const roles = announceable.map((n: any) => n.role.value);
+    const roles = announceable.map(n => n.role!.value);
     expect(roles).toContain('heading');
     expect(roles).toContain('link');
   });
@@ -211,7 +211,6 @@ describe('check_focus_visible', () => {
     expect(links.length).toBeGreaterThan(0);
 
     const firstLink = links[0];
-    const unfocused = await firstLink.evaluate(el => window.getComputedStyle(el).outlineStyle);
     await firstLink.focus();
     const focused = await firstLink.evaluate(el => window.getComputedStyle(el).outlineStyle);
     await firstLink.blur();
