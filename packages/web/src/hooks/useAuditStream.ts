@@ -65,14 +65,14 @@ export function useAuditStream() {
           setState(s => ({
             ...s,
             status: 'complete',
-            report: (event.data as any).report ?? null,
+            report: event.data.report ?? null,
           }));
           es.close();
         } else if (event.type === 'error') {
           setState(s => ({
             ...s,
             status: 'failed',
-            error: (event.data as any).error ?? 'Audit failed',
+            error: typeof event.data.error === 'string' ? event.data.error : 'Audit failed',
           }));
           es.close();
         }

@@ -28,9 +28,9 @@ interface Props {
 }
 
 const severityColors = {
-  critical: 'bg-red-100 text-red-800 border-red-200',
-  major: 'bg-orange-100 text-orange-800 border-orange-200',
-  minor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  critical: 'bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200 dark:border-red-800',
+  major: 'bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-950 dark:text-orange-200 dark:border-orange-800',
+  minor: 'bg-yellow-100 text-yellow-900 border-yellow-300 dark:bg-yellow-950 dark:text-yellow-200 dark:border-yellow-800',
 };
 
 const levelBadge: Record<string, string> = {
@@ -52,9 +52,9 @@ function isAuditReport(value: unknown): value is AuditReport {
 export function AuditResults({ report }: Props) {
   if (!isAuditReport(report)) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Audit Output</h2>
-        <pre className="whitespace-pre-wrap text-sm text-gray-700 overflow-auto max-h-96">
+      <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+        <h2 className="mb-2 text-lg font-semibold">Audit Output</h2>
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-sm text-gray-700 dark:text-gray-200">
           {typeof report === 'string' ? report : JSON.stringify(report, null, 2)}
         </pre>
       </div>
@@ -65,45 +65,45 @@ export function AuditResults({ report }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Summary</h2>
+      <section aria-labelledby="summary-heading" className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-5">
+        <h2 id="summary-heading" className="mb-3 text-lg font-semibold">Summary</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{summary.total}</div>
-            <div className="text-xs text-gray-500">Total Issues</div>
+            <div className="text-2xl font-bold">{summary.total}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Total Issues</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{summary.critical}</div>
-            <div className="text-xs text-gray-500">Critical</div>
+            <div className="text-2xl font-bold text-red-700 dark:text-red-400">{summary.critical}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Critical</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">{summary.major}</div>
-            <div className="text-xs text-gray-500">Major</div>
+            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{summary.major}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Major</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{summary.minor}</div>
-            <div className="text-xs text-gray-500">Minor</div>
+            <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{summary.minor}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Minor</div>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-4 text-sm">
-          <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700">
+          <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
             {levelBadge[summary.conformanceLevel] ?? summary.conformanceLevel}
           </span>
         </div>
         {summary.topPriorities.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-1">Top Priorities</h3>
-            <ol className="list-decimal list-inside text-sm text-gray-600 space-y-1">
+            <h3 className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-200">Top Priorities</h3>
+            <ol className="list-inside list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-300">
               {summary.topPriorities.map((p, i) => (
                 <li key={i}>{p}</li>
               ))}
             </ol>
           </div>
         )}
-      </div>
+      </section>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold">
           Findings ({findings.length})
         </h2>
         {findings.map((finding, i) => (
@@ -116,45 +116,45 @@ export function AuditResults({ report }: Props) {
 
 function FindingCard({ finding, index }: { finding: Finding; index: number }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <article className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-5" aria-labelledby={`finding-${index}`}>
       <div className="flex items-start gap-3">
-        <span className="text-sm font-mono text-gray-400 mt-0.5">#{index}</span>
+        <span aria-hidden="true" className="mt-0.5 font-mono text-sm text-gray-500 dark:text-gray-400">#{index}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium border ${severityColors[finding.severity]}`}>
               {finding.severity}
             </span>
-            <span className="text-xs text-gray-500 font-mono">
+            <span className="font-mono text-xs text-gray-600 dark:text-gray-300">
               {finding.wcagCriteria}
             </span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               Level {finding.wcagLevel}
             </span>
             {finding.confidence && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 ({finding.confidence} confidence)
               </span>
             )}
           </div>
-          <p className="text-sm font-medium text-gray-900">{finding.issue}</p>
-          <p className="mt-1 text-xs text-gray-500 font-mono truncate" title={finding.element}>
+          <h3 id={`finding-${index}`} className="text-sm font-medium">{finding.issue}</h3>
+          <p className="mt-1 break-all font-mono text-xs text-gray-600 dark:text-gray-300">
             {finding.element}
           </p>
           <details className="mt-2">
-            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+            <summary className="cursor-pointer rounded text-xs text-gray-600 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:text-gray-300 dark:hover:text-white">
               Evidence & suggestion
             </summary>
             <div className="mt-2 space-y-2 text-sm">
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 <span className="font-medium">Evidence:</span> {finding.evidence}
               </p>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 <span className="font-medium">Fix:</span> {finding.suggestion}
               </p>
             </div>
           </details>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
