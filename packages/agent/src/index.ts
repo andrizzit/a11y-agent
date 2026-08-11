@@ -9,8 +9,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const mcpServerPath = resolve(__dirname, '../../mcp-server/dist/index.js');
 
 const model = new BedrockModel({
-  modelId: 'us.anthropic.claude-sonnet-4-20250514',
-  region: 'us-east-1',
+  modelId: process.env.BEDROCK_MODEL_ID ?? 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+  region: process.env.AWS_REGION ?? 'us-east-1',
   maxTokens: 4096,
   temperature: 0.3,
 });
@@ -62,7 +62,8 @@ async function main() {
   }
 }
 
-const isDirectRun = process.argv[1]?.endsWith('index.js');
+const isDirectRun = process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isDirectRun) {
   main().catch(console.error);
 }
