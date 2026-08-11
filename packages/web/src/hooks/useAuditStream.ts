@@ -46,11 +46,18 @@ export function useAuditStream() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message ?? `Request failed (${res.status})`);
+        const data: unknown = await res.json().catch(() => null);
+        const message = typeof data === 'object' && data !== null && 'message' in data &&
+          typeof data.message === 'string'
+          ? data.message
+          : `Request failed (${res.status})`;
+        throw new Error(message);
       }
 
-      const job = await res.json();
+      const job: unknown = await res.json();
+      if (typeof job !== 'object' || job === null || !('id' in job) || typeof job.id !== 'string') {
+        throw new Error('The server returned an invalid audit response');
+      }
       setState(s => ({ ...s, status: 'running', jobId: job.id }));
 
       // Connect to SSE stream

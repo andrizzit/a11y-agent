@@ -106,9 +106,19 @@ export function AuditResults({ report }: Props) {
         <h2 className="text-lg font-semibold">
           Findings ({findings.length})
         </h2>
-        {findings.map((finding, i) => (
-          <FindingCard key={i} finding={finding} index={i + 1} />
-        ))}
+        {findings.length === 0 ? (
+          <section className="rounded-lg border border-green-300 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-950">
+            <div aria-hidden="true" className="text-3xl text-green-700 dark:text-green-400">✓</div>
+            <h3 className="mt-2 font-semibold text-green-950 dark:text-green-100">No accessibility issues found</h3>
+            <p className="mx-auto mt-1 max-w-md text-sm text-green-800 dark:text-green-200">
+              The automated audit did not detect any issues. Manual testing is still recommended for complete coverage.
+            </p>
+          </section>
+        ) : (
+          findings.map((finding, i) => (
+            <FindingCard key={i} finding={finding} index={i + 1} />
+          ))
+        )}
       </div>
     </div>
   );

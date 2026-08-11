@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuditStream } from '../hooks/useAuditStream.ts';
 import { AuditProgress } from './AuditProgress.tsx';
 import { AuditResults } from './AuditResults.tsx';
+import { AuditErrorState, AuditLoadingSkeleton, MissingReportState } from './AuditStates.tsx';
 
 export function AuditForm() {
   const [url, setUrl] = useState('');
@@ -45,19 +46,17 @@ export function AuditForm() {
         </button>
       </form>
 
-      {error && (
-        <div role="alert" className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {error}
-          <button
-            onClick={reset}
-            className="ml-3 rounded underline hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-          >
-            Try again
-          </button>
-        </div>
+      {status === 'failed' && error && (
+        <AuditErrorState
+          message={error}
+          onRetry={() => startAudit(url)}
+          onDismiss={reset}
+        />
       )}
 
-      {isActive && (
+      {status === 'submitting' && <AuditLoadingSkeleton />}
+
+      {status === 'running' && (
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900" aria-live="polite" aria-atomic="false">
           <AuditProgress events={events} />
         </div>
@@ -74,7 +73,7 @@ export function AuditForm() {
               Run another audit
             </button>
           </div>
-          {report != null && <AuditResults report={report} />}
+          {report != null ? <AuditResults report={report} /> : <MissingReportState />}
         </div>
       )}
     </div>
