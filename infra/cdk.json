@@ -1,0 +1,6 @@
+{
+  "app": "node dist/bin/a11y-agent.js",
+  "context": {
+    "@aws-cdk/aws-iam:minimizePolicies": true
+  }
+}

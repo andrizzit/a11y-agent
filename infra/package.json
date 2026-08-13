@@ -1,0 +1,25 @@
+{
+  "name": "@a11y-agent/infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint bin/ lib/ test/",
+    "test": "vitest run",
+    "synth": "pnpm build && cdk synth",
+    "diff": "pnpm build && cdk diff",
+    "deploy": "pnpm build && cdk deploy",
+    "clean": "rm -rf dist cdk.out"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.264.0",
+    "constructs": "^10.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "aws-cdk": "^2.1135.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.6"
+  }
+}
