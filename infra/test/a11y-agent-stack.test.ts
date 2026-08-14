@@ -34,6 +34,9 @@ describe('A11yAgentStack', () => {
             RuntimeEnvironmentVariables: Match.arrayWith([
               { Name: 'HOST', Value: '0.0.0.0' },
               { Name: 'PORT', Value: '3000' },
+              Match.objectLike({ Name: 'AWS_REGION' }),
+              Match.objectLike({ Name: 'DYNAMODB_TABLE' }),
+              Match.objectLike({ Name: 'EVIDENCE_BUCKET' }),
             ]),
           },
         },
@@ -41,6 +44,75 @@ describe('A11yAgentStack', () => {
       HealthCheckConfiguration: {
         Path: '/health',
         Protocol: 'HTTP',
+      },
+    });
+  });
+
+  it('creates an on-demand jobs table with recovery enabled', () => {
+    const template = createTemplate();
+
+    template.resourceCountIs('AWS::DynamoDB::Table', 1);
+    template.hasResourceProperties('AWS::DynamoDB::Table', {
+      AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+      KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+      BillingMode: 'PAY_PER_REQUEST',
+      PointInTimeRecoverySpecification: {
+        PointInTimeRecoveryEnabled: true,
+      },
+    });
+  });
+
+  it('creates a private encrypted evidence bucket with retention rules', () => {
+    const template = createTemplate();
+
+    template.resourceCountIs('AWS::S3::Bucket', 1);
+    template.hasResourceProperties('AWS::S3::Bucket', {
+      BucketEncryption: {
+        ServerSideEncryptionConfiguration: Match.arrayWith([
+          Match.objectLike({
+            ServerSideEncryptionByDefault: { SSEAlgorithm: 'AES256' },
+          }),
+        ]),
+      },
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+      VersioningConfiguration: { Status: 'Enabled' },
+      LifecycleConfiguration: {
+        Rules: Match.arrayWith([
+          Match.objectLike({
+            Id: 'ExpireAuditEvidence',
+            ExpirationInDays: 90,
+            NoncurrentVersionExpiration: { NoncurrentDays: 30 },
+            Status: 'Enabled',
+          }),
+        ]),
+      },
+    });
+  });
+
+  it('grants the runtime role access to jobs and evidence only', () => {
+    const template = createTemplate();
+
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: Match.arrayWith([
+              'dynamodb:GetItem',
+              'dynamodb:PutItem',
+              'dynamodb:UpdateItem',
+            ]),
+            Effect: 'Allow',
+          }),
+          Match.objectLike({
+            Action: Match.arrayWith(['s3:GetObject*', 's3:PutObject']),
+            Effect: 'Allow',
+          }),
+        ]),
       },
     });
   });

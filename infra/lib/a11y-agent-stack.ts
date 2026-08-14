@@ -7,8 +7,10 @@ import {
   type StackProps,
 } from 'aws-cdk-lib';
 import { CfnService } from 'aws-cdk-lib/aws-apprunner';
+import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Repository } from 'aws-cdk-lib/aws-ecr';
 import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 
 export class A11yAgentStack extends Stack {
@@ -33,6 +35,34 @@ export class A11yAgentStack extends Stack {
       description: 'Runtime role for the a11y-agent API and agent worker',
     });
 
+    const jobsTable = new Table(this, 'JobsTable', {
+      partitionKey: { name: 'id', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    const evidenceBucket = new Bucket(this, 'EvidenceBucket', {
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      encryption: BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      versioned: true,
+      lifecycleRules: [
+        {
+          id: 'ExpireAuditEvidence',
+          enabled: true,
+          expiration: Duration.days(90),
+          noncurrentVersionExpiration: Duration.days(30),
+        },
+      ],
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    jobsTable.grantReadWriteData(instanceRole);
+    evidenceBucket.grantReadWrite(instanceRole);
+
     const service = new CfnService(this, 'ApiService', {
       serviceName: 'a11y-agent-api',
       sourceConfiguration: {
@@ -48,6 +78,9 @@ export class A11yAgentStack extends Stack {
             runtimeEnvironmentVariables: [
               { name: 'HOST', value: '0.0.0.0' },
               { name: 'PORT', value: '3000' },
+              { name: 'AWS_REGION', value: this.region },
+              { name: 'DYNAMODB_TABLE', value: jobsTable.tableName },
+              { name: 'EVIDENCE_BUCKET', value: evidenceBucket.bucketName },
             ],
           },
         },
@@ -80,6 +113,16 @@ export class A11yAgentStack extends Stack {
     new CfnOutput(this, 'ImageRepositoryUri', {
       description: 'ECR repository URI for the API and agent container image',
       value: imageRepository.repositoryUri,
+    });
+
+    new CfnOutput(this, 'JobsTableName', {
+      description: 'DynamoDB table used to persist audit jobs and reports',
+      value: jobsTable.tableName,
+    });
+
+    new CfnOutput(this, 'EvidenceBucketName', {
+      description: 'Private S3 bucket used for screenshots and audit evidence',
+      value: evidenceBucket.bucketName,
     });
   }
 }
