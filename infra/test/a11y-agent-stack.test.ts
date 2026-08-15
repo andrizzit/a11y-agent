@@ -65,7 +65,7 @@ describe('A11yAgentStack', () => {
   it('creates a private encrypted evidence bucket with retention rules', () => {
     const template = createTemplate();
 
-    template.resourceCountIs('AWS::S3::Bucket', 1);
+    template.resourceCountIs('AWS::S3::Bucket', 2);
     template.hasResourceProperties('AWS::S3::Bucket', {
       BucketEncryption: {
         ServerSideEncryptionConfiguration: Match.arrayWith([
@@ -91,6 +91,71 @@ describe('A11yAgentStack', () => {
           }),
         ]),
       },
+    });
+  });
+
+  it('hosts the SPA in a private bucket behind CloudFront OAC', () => {
+    const template = createTemplate();
+
+    template.hasResourceProperties('AWS::S3::Bucket', {
+      PublicAccessBlockConfiguration: {
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      },
+      VersioningConfiguration: { Status: 'Enabled' },
+      LifecycleConfiguration: {
+        Rules: Match.arrayWith([
+          Match.objectLike({
+            Id: 'ExpireOldWebAssetVersions',
+            NoncurrentVersionExpiration: { NoncurrentDays: 30 },
+            Status: 'Enabled',
+          }),
+        ]),
+      },
+    });
+
+    template.resourceCountIs('AWS::CloudFront::OriginAccessControl', 1);
+    template.hasResourceProperties('AWS::CloudFront::OriginAccessControl', {
+      OriginAccessControlConfig: {
+        OriginAccessControlOriginType: 's3',
+        SigningBehavior: 'always',
+        SigningProtocol: 'sigv4',
+      },
+    });
+  });
+
+  it('configures HTTPS, caching, security headers, and SPA fallbacks', () => {
+    const template = createTemplate();
+
+    template.resourceCountIs('AWS::CloudFront::Distribution', 1);
+    template.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        DefaultRootObject: 'index.html',
+        Enabled: true,
+        HttpVersion: 'http2and3',
+        PriceClass: 'PriceClass_100',
+        DefaultCacheBehavior: Match.objectLike({
+          AllowedMethods: ['GET', 'HEAD', 'OPTIONS'],
+          Compress: true,
+          ViewerProtocolPolicy: 'redirect-to-https',
+        }),
+        CustomErrorResponses: Match.arrayWith([
+          {
+            ErrorCode: 403,
+            ErrorCachingMinTTL: 0,
+            ResponseCode: 200,
+            ResponsePagePath: '/index.html',
+          },
+          {
+            ErrorCode: 404,
+            ErrorCachingMinTTL: 0,
+            ResponseCode: 200,
+            ResponsePagePath: '/index.html',
+          },
+        ]),
+      }),
     });
   });
 

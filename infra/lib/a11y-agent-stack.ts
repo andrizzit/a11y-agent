@@ -7,6 +7,16 @@ import {
   type StackProps,
 } from 'aws-cdk-lib';
 import { CfnService } from 'aws-cdk-lib/aws-apprunner';
+import {
+  AllowedMethods,
+  CachePolicy,
+  Distribution,
+  HttpVersion,
+  PriceClass,
+  ResponseHeadersPolicy,
+  ViewerProtocolPolicy,
+} from 'aws-cdk-lib/aws-cloudfront';
+import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Repository } from 'aws-cdk-lib/aws-ecr';
 import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
@@ -58,6 +68,41 @@ export class A11yAgentStack extends Stack {
         },
       ],
       removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    const webBucket = new Bucket(this, 'WebBucket', {
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      encryption: BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      versioned: true,
+      lifecycleRules: [
+        {
+          id: 'ExpireOldWebAssetVersions',
+          enabled: true,
+          noncurrentVersionExpiration: Duration.days(30),
+        },
+      ],
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
+    const webDistribution = new Distribution(this, 'WebDistribution', {
+      defaultRootObject: 'index.html',
+      defaultBehavior: {
+        origin: S3BucketOrigin.withOriginAccessControl(webBucket),
+        allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachePolicy: CachePolicy.CACHING_OPTIMIZED,
+        compress: true,
+        responseHeadersPolicy: ResponseHeadersPolicy.SECURITY_HEADERS,
+        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+      errorResponses: [403, 404].map(httpStatus => ({
+        httpStatus,
+        responseHttpStatus: 200,
+        responsePagePath: '/index.html',
+        ttl: Duration.seconds(0),
+      })),
+      httpVersion: HttpVersion.HTTP2_AND_3,
+      priceClass: PriceClass.PRICE_CLASS_100,
     });
 
     jobsTable.grantReadWriteData(instanceRole);
@@ -123,6 +168,21 @@ export class A11yAgentStack extends Stack {
     new CfnOutput(this, 'EvidenceBucketName', {
       description: 'Private S3 bucket used for screenshots and audit evidence',
       value: evidenceBucket.bucketName,
+    });
+
+    new CfnOutput(this, 'WebBucketName', {
+      description: 'Private S3 bucket containing the React SPA assets',
+      value: webBucket.bucketName,
+    });
+
+    new CfnOutput(this, 'WebDistributionId', {
+      description: 'CloudFront distribution ID for cache invalidations',
+      value: webDistribution.distributionId,
+    });
+
+    new CfnOutput(this, 'WebUrl', {
+      description: 'HTTPS URL of the React SPA',
+      value: `https://${webDistribution.distributionDomainName}`,
     });
   }
 }
