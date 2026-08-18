@@ -19,13 +19,52 @@ import {
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Repository } from 'aws-cdk-lib/aws-ecr';
-import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 
+const BEDROCK_FOUNDATION_MODEL_ID = 'anthropic.claude-sonnet-4-20250514-v1:0';
+const BEDROCK_PROFILE_SCOPE_BY_REGION: Readonly<Record<string, string>> = {
+  'us-east-1': 'us',
+  'us-east-2': 'us',
+  'us-west-1': 'us',
+  'us-west-2': 'us',
+  'eu-central-1': 'eu',
+  'eu-north-1': 'eu',
+  'eu-south-1': 'eu',
+  'eu-south-2': 'eu',
+  'eu-west-1': 'eu',
+  'eu-west-3': 'eu',
+  'il-central-1': 'eu',
+  'ap-northeast-1': 'apac',
+  'ap-northeast-2': 'apac',
+  'ap-northeast-3': 'apac',
+  'ap-south-1': 'apac',
+  'ap-south-2': 'apac',
+  'ap-southeast-1': 'apac',
+  'ap-southeast-2': 'apac',
+  'ap-southeast-4': 'apac',
+};
+
+export function bedrockInferenceProfileIdForRegion(region: string): string {
+  const scope = BEDROCK_PROFILE_SCOPE_BY_REGION[region];
+  if (!scope) {
+    throw new Error(`Claude Sonnet 4 geographic inference is not supported from ${region}`);
+  }
+
+  return `${scope}.${BEDROCK_FOUNDATION_MODEL_ID}`;
+}
+
+export interface A11yAgentStackProps extends StackProps {
+  bedrockInferenceProfileId?: string;
+}
+
 export class A11yAgentStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props?: A11yAgentStackProps) {
     super(scope, id, props);
+
+    const bedrockInferenceProfileId =
+      props?.bedrockInferenceProfileId ?? `us.${BEDROCK_FOUNDATION_MODEL_ID}`;
 
     const imageRepository = new Repository(this, 'ServiceImageRepository', {
       imageScanOnPush: true,
@@ -39,7 +78,6 @@ export class A11yAgentStack extends Stack {
       ],
     });
 
-    // Runtime permissions such as Bedrock, DynamoDB, and S3 are added on later deployment days.
     const instanceRole = new Role(this, 'AppRunnerInstanceRole', {
       assumedBy: new ServicePrincipal('tasks.apprunner.amazonaws.com'),
       description: 'Runtime role for the a11y-agent API and agent worker',
@@ -107,6 +145,28 @@ export class A11yAgentStack extends Stack {
 
     jobsTable.grantReadWriteData(instanceRole);
     evidenceBucket.grantReadWrite(instanceRole);
+    const bedrockInferenceProfileArn =
+      `arn:${this.partition}:bedrock:${this.region}:${this.account}` +
+      `:inference-profile/${bedrockInferenceProfileId}`;
+    instanceRole.addToPolicy(
+      new PolicyStatement({
+        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        resources: [bedrockInferenceProfileArn],
+      }),
+    );
+    instanceRole.addToPolicy(
+      new PolicyStatement({
+        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        resources: [
+          `arn:${this.partition}:bedrock:*::foundation-model/${BEDROCK_FOUNDATION_MODEL_ID}`,
+        ],
+        conditions: {
+          StringLike: {
+            'bedrock:InferenceProfileArn': bedrockInferenceProfileArn,
+          },
+        },
+      }),
+    );
 
     const service = new CfnService(this, 'ApiService', {
       serviceName: 'a11y-agent-api',
@@ -124,6 +184,7 @@ export class A11yAgentStack extends Stack {
               { name: 'HOST', value: '0.0.0.0' },
               { name: 'PORT', value: '3000' },
               { name: 'AWS_REGION', value: this.region },
+              { name: 'BEDROCK_MODEL_ID', value: bedrockInferenceProfileId },
               { name: 'DYNAMODB_TABLE', value: jobsTable.tableName },
               { name: 'EVIDENCE_BUCKET', value: evidenceBucket.bucketName },
             ],

@@ -1,7 +1,10 @@
 import { App } from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { describe, expect, it } from 'vitest';
-import { A11yAgentStack } from '../lib/a11y-agent-stack.js';
+import {
+  A11yAgentStack,
+  bedrockInferenceProfileIdForRegion,
+} from '../lib/a11y-agent-stack.js';
 
 function createTemplate() {
   const app = new App();
@@ -10,6 +13,15 @@ function createTemplate() {
 }
 
 describe('A11yAgentStack', () => {
+  it('selects the geographic Bedrock profile for the deployment region', () => {
+    expect(bedrockInferenceProfileIdForRegion('us-east-1')).toMatch(/^us\./);
+    expect(bedrockInferenceProfileIdForRegion('eu-west-3')).toMatch(/^eu\./);
+    expect(bedrockInferenceProfileIdForRegion('ap-southeast-2')).toMatch(/^apac\./);
+    expect(() => bedrockInferenceProfileIdForRegion('ca-central-1')).toThrow(
+      'Claude Sonnet 4 geographic inference is not supported from ca-central-1',
+    );
+  });
+
   it('creates a scan-enabled ECR repository', () => {
     const template = createTemplate();
 
@@ -35,6 +47,10 @@ describe('A11yAgentStack', () => {
               { Name: 'HOST', Value: '0.0.0.0' },
               { Name: 'PORT', Value: '3000' },
               Match.objectLike({ Name: 'AWS_REGION' }),
+              {
+                Name: 'BEDROCK_MODEL_ID',
+                Value: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+              },
               Match.objectLike({ Name: 'DYNAMODB_TABLE' }),
               Match.objectLike({ Name: 'EVIDENCE_BUCKET' }),
             ]),
@@ -180,6 +196,30 @@ describe('A11yAgentStack', () => {
         ]),
       },
     });
+  });
+
+  it('grants model-scoped Bedrock invocation access to the runtime role', () => {
+    const template = createTemplate();
+
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+            Effect: 'Allow',
+          }),
+        ]),
+      },
+    });
+
+    const policies = JSON.stringify(template.findResources('AWS::IAM::Policy'));
+    expect(policies).toContain(
+      ':bedrock:*::foundation-model/anthropic.claude-sonnet-4-20250514-v1:0',
+    );
+    expect(policies).toContain(
+      ':inference-profile/us.anthropic.claude-sonnet-4-20250514-v1:0',
+    );
+    expect(policies).toContain('bedrock:InferenceProfileArn');
   });
 
   it('uses separate least-privilege trust relationships for build and runtime', () => {
