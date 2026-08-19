@@ -5,6 +5,8 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "turbo build",
+    "docker:build": "docker build --tag a11y-agent-api .",
+    "docker:run": "docker run --rm --init --ipc=host --publish 3000:3000 a11y-agent-api",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "test": "turbo test",

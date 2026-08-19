@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "a11y-mcp-server": "dist/index.js"
   },
