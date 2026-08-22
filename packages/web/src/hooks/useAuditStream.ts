@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
+  ?? '/api';
+
 export type StreamEventType = 'status_change' | 'tool_start' | 'tool_complete' | 'complete' | 'error';
 
 export interface StreamEvent {
@@ -39,7 +42,7 @@ export function useAuditStream() {
     setState({ status: 'submitting', jobId: null, events: [], error: null, report: null });
 
     try {
-      const res = await fetch('/api/audits', {
+      const res = await fetch(`${API_BASE_URL}/audits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -61,7 +64,7 @@ export function useAuditStream() {
       setState(s => ({ ...s, status: 'running', jobId: job.id }));
 
       // Connect to SSE stream
-      const es = new EventSource(`/api/audits/${job.id}/stream`);
+      const es = new EventSource(`${API_BASE_URL}/audits/${job.id}/stream`);
       eventSourceRef.current = es;
 
       const handleEvent = (e: MessageEvent) => {

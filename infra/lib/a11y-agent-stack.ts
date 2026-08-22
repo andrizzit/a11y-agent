@@ -18,7 +18,7 @@ import {
 } from 'aws-cdk-lib/aws-cloudfront';
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
-import { Repository } from 'aws-cdk-lib/aws-ecr';
+import type { IRepository } from 'aws-cdk-lib/aws-ecr';
 import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
@@ -57,19 +57,17 @@ export function bedrockInferenceProfileIdForRegion(region: string): string {
 
 export interface A11yAgentStackProps extends StackProps {
   bedrockInferenceProfileId?: string;
+  imageRepository: IRepository;
+  imageTag?: string;
 }
 
 export class A11yAgentStack extends Stack {
-  constructor(scope: Construct, id: string, props?: A11yAgentStackProps) {
+  constructor(scope: Construct, id: string, props: A11yAgentStackProps) {
     super(scope, id, props);
 
-    const bedrockInferenceProfileId =
-      props?.bedrockInferenceProfileId ?? `us.${BEDROCK_FOUNDATION_MODEL_ID}`;
-
-    const imageRepository = new Repository(this, 'ServiceImageRepository', {
-      imageScanOnPush: true,
-      removalPolicy: RemovalPolicy.RETAIN,
-    });
+    const bedrockInferenceProfileId = props.bedrockInferenceProfileId
+      ?? `us.${BEDROCK_FOUNDATION_MODEL_ID}`;
+    const imageTag = props.imageTag ?? 'latest';
 
     const ecrAccessRole = new Role(this, 'AppRunnerEcrAccessRole', {
       assumedBy: new ServicePrincipal('build.apprunner.amazonaws.com'),
@@ -176,7 +174,7 @@ export class A11yAgentStack extends Stack {
         },
         autoDeploymentsEnabled: true,
         imageRepository: {
-          imageIdentifier: `${imageRepository.repositoryUri}:latest`,
+          imageIdentifier: `${props.imageRepository.repositoryUri}:${imageTag}`,
           imageRepositoryType: 'ECR',
           imageConfiguration: {
             port: '3000',
@@ -206,7 +204,7 @@ export class A11yAgentStack extends Stack {
       },
     });
 
-    service.node.addDependency(imageRepository, ecrAccessRole, instanceRole);
+    service.node.addDependency(ecrAccessRole, instanceRole);
 
     Tags.of(this).add('Project', 'a11y-agent');
     Tags.of(this).add('ManagedBy', 'AWS CDK');
@@ -214,11 +212,6 @@ export class A11yAgentStack extends Stack {
     new CfnOutput(this, 'ServiceUrl', {
       description: 'Public URL of the App Runner API service',
       value: `https://${service.attrServiceUrl}`,
-    });
-
-    new CfnOutput(this, 'ImageRepositoryUri', {
-      description: 'ECR repository URI for the API and agent container image',
-      value: imageRepository.repositoryUri,
     });
 
     new CfnOutput(this, 'JobsTableName', {

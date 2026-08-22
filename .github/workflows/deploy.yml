@@ -1,0 +1,134 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    if: >-
+      vars.AWS_DEPLOY_ROLE_ARN != '' &&
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      IMAGE_STACK_NAME: A11yAgentImageStack
+      APP_STACK_NAME: A11yAgentStack
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+    steps:
+      - name: Check out tested revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap CDK
+        run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          pnpm --dir infra exec cdk bootstrap "aws://${account_id}/${AWS_REGION}"
+
+      - name: Provision image repository
+        run: >-
+          pnpm --dir infra exec cdk deploy "$IMAGE_STACK_NAME"
+          --require-approval never
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2.1.6
+
+      - name: Build and push service image
+        run: |
+          repository_uri="$(aws cloudformation describe-stacks \
+            --stack-name "$IMAGE_STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='ImageRepositoryUri'].OutputValue" \
+            --output text)"
+          test -n "$repository_uri"
+          repository_name="${repository_uri#*/}"
+          if aws ecr describe-images \
+            --repository-name "$repository_name" \
+            --image-ids "imageTag=$IMAGE_TAG" > /dev/null 2>&1; then
+            echo "Reusing ${repository_uri}:${IMAGE_TAG}"
+          else
+            docker build --platform linux/amd64 --tag "${repository_uri}:${IMAGE_TAG}" .
+            docker push "${repository_uri}:${IMAGE_TAG}"
+          fi
+
+      - name: Deploy application stack
+        run: >-
+          pnpm --dir infra exec cdk deploy "$APP_STACK_NAME"
+          --context "imageTag=$IMAGE_TAG"
+          --require-approval never
+
+      - name: Read deployment outputs
+        id: outputs
+        run: |
+          service_url="$(aws cloudformation describe-stacks \
+            --stack-name "$APP_STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='ServiceUrl'].OutputValue" \
+            --output text)"
+          web_bucket="$(aws cloudformation describe-stacks \
+            --stack-name "$APP_STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='WebBucketName'].OutputValue" \
+            --output text)"
+          distribution_id="$(aws cloudformation describe-stacks \
+            --stack-name "$APP_STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='WebDistributionId'].OutputValue" \
+            --output text)"
+          test -n "$service_url" && test -n "$web_bucket" && test -n "$distribution_id"
+          echo "service_url=$service_url" >> "$GITHUB_OUTPUT"
+          echo "web_bucket=$web_bucket" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$distribution_id" >> "$GITHUB_OUTPUT"
+
+      - name: Build web application
+        env:
+          VITE_API_BASE_URL: ${{ steps.outputs.outputs.service_url }}
+        run: pnpm --filter @a11y-agent/web build
+
+      - name: Publish web application
+        env:
+          WEB_BUCKET: ${{ steps.outputs.outputs.web_bucket }}
+        run: |
+          aws s3 sync packages/web/dist "s3://${WEB_BUCKET}" \
+            --delete \
+            --exclude index.html \
+            --cache-control "public,max-age=31536000,immutable"
+          aws s3 cp packages/web/dist/index.html "s3://${WEB_BUCKET}/index.html" \
+            --content-type text/html \
+            --cache-control "no-cache,no-store,must-revalidate"
+
+      - name: Invalidate CloudFront cache
+        env:
+          DISTRIBUTION_ID: ${{ steps.outputs.outputs.distribution_id }}
+        run: aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"

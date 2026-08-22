@@ -5,10 +5,20 @@ import {
   A11yAgentStack,
   bedrockInferenceProfileIdForRegion,
 } from '../lib/a11y-agent-stack.js';
+import { ServiceImageStack } from '../lib/service-image-stack.js';
 
 function createTemplate() {
   const app = new App();
-  const stack = new A11yAgentStack(app, 'TestStack');
+  const imageStack = new ServiceImageStack(app, 'TestImageStack');
+  const stack = new A11yAgentStack(app, 'TestStack', {
+    imageRepository: imageStack.repository,
+  });
+  return Template.fromStack(stack);
+}
+
+function createImageTemplate() {
+  const app = new App();
+  const stack = new ServiceImageStack(app, 'TestImageStack');
   return Template.fromStack(stack);
 }
 
@@ -23,11 +33,24 @@ describe('A11yAgentStack', () => {
   });
 
   it('creates a scan-enabled ECR repository', () => {
-    const template = createTemplate();
+    const template = createImageTemplate();
 
     template.resourceCountIs('AWS::ECR::Repository', 1);
     template.hasResourceProperties('AWS::ECR::Repository', {
       ImageScanningConfiguration: { ScanOnPush: true },
+      ImageTagMutability: 'IMMUTABLE',
+      LifecyclePolicy: {
+        LifecyclePolicyText: Match.serializedJson(
+          Match.objectLike({
+            rules: Match.arrayWith([
+              Match.objectLike({
+                action: { type: 'expire' },
+                selection: Match.objectLike({ countNumber: 20 }),
+              }),
+            ]),
+          }),
+        ),
+      },
     });
   });
 
@@ -62,6 +85,19 @@ describe('A11yAgentStack', () => {
         Protocol: 'HTTP',
       },
     });
+  });
+
+  it('uses an immutable deployment image tag when provided', () => {
+    const app = new App();
+    const imageStack = new ServiceImageStack(app, 'TestImageStack');
+    const stack = new A11yAgentStack(app, 'TestStack', {
+      imageRepository: imageStack.repository,
+      imageTag: 'abc123',
+    });
+    const template = Template.fromStack(stack);
+
+    const services = template.findResources('AWS::AppRunner::Service');
+    expect(JSON.stringify(services)).toContain(':abc123');
   });
 
   it('creates an on-demand jobs table with recovery enabled', () => {
