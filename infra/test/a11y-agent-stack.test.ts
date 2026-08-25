@@ -22,6 +22,23 @@ function createImageTemplate() {
   return Template.fromStack(stack);
 }
 
+function createTemplateWithDomain() {
+  const app = new App({
+    context: {
+      domainName: 'a11y.example.com',
+      hostedZoneId: 'Z1234567890ABC',
+      hostedZoneName: 'example.com',
+    },
+  });
+  const env = { account: '123456789012', region: 'us-east-1' };
+  const imageStack = new ServiceImageStack(app, 'TestImageStack', { env });
+  const stack = new A11yAgentStack(app, 'TestStack', {
+    imageRepository: imageStack.repository,
+    env,
+  });
+  return Template.fromStack(stack);
+}
+
 describe('A11yAgentStack', () => {
   it('selects the geographic Bedrock profile for the deployment region', () => {
     expect(bedrockInferenceProfileIdForRegion('us-east-1')).toMatch(/^us\./);
@@ -277,5 +294,42 @@ describe('A11yAgentStack', () => {
     });
 
     expect(template.findResources('AWS::IAM::Role')).toBeDefined();
+  });
+
+  it('does not create certificate or DNS records without domain context', () => {
+    const template = createTemplate();
+
+    expect(template.findResources('AWS::CertificateManager::Certificate')).toEqual({});
+    expect(template.findResources('AWS::Route53::RecordSet')).toEqual({});
+  });
+
+  it('provisions ACM certificate and Route 53 alias when domain context is set', () => {
+    const template = createTemplateWithDomain();
+
+    template.resourceCountIs('AWS::CertificateManager::Certificate', 1);
+    template.hasResourceProperties('AWS::CertificateManager::Certificate', {
+      DomainName: 'a11y.example.com',
+      ValidationMethod: 'DNS',
+    });
+
+    template.resourceCountIs('AWS::Route53::RecordSet', 1);
+    template.hasResourceProperties('AWS::Route53::RecordSet', {
+      Name: 'a11y.example.com.',
+      Type: 'A',
+      HostedZoneId: 'Z1234567890ABC',
+    });
+  });
+
+  it('attaches the custom domain to the CloudFront distribution', () => {
+    const template = createTemplateWithDomain();
+
+    template.hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        Aliases: ['a11y.example.com'],
+        ViewerCertificate: Match.objectLike({
+          SslSupportMethod: 'sni-only',
+        }),
+      }),
+    });
   });
 });

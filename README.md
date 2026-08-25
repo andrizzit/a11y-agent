@@ -4,18 +4,48 @@ An AI-powered accessibility auditor that uses an autonomous agent to analyze web
 
 ## Architecture
 
-```
-┌──────────────┐       ┌──────────────┐       ┌──────────────────┐
-│ React SPA    │       │ App Runner   │       │ Agent Worker     │
-│ (S3/CF)      │──────▶│ (API)        │──────▶│ - Strands Agent  │
-└──────────────┘  SSE  └──────────────┘       │ - MCP Server     │
-                                              │ - Playwright     │
-                       ┌──────────────┐       │ - Bedrock/Claude │
-                       │ DynamoDB     │◀──────└──────────────────┘
-                       └──────────────┘
+```mermaid
+graph TB
+    subgraph "Client"
+        Browser[React SPA]
+    end
+
+    subgraph "AWS Cloud"
+        subgraph "Content Delivery"
+            R53[Route 53<br/>Custom Domain]
+            CF[CloudFront<br/>HTTPS + OAC]
+            WebS3[S3 Bucket<br/>SPA Assets]
+        end
+
+        subgraph "Compute"
+            AR[App Runner<br/>API + Agent]
+        end
+
+        subgraph "AI"
+            Bedrock[Amazon Bedrock<br/>Claude Sonnet 4]
+        end
+
+        subgraph "Storage"
+            DDB[DynamoDB<br/>Audit Jobs]
+            EvidenceS3[S3 Bucket<br/>Screenshots]
+        end
+
+        subgraph "Container Registry"
+            ECR[ECR<br/>Service Image]
+        end
+    end
+
+    Browser -->|HTTPS| R53
+    R53 --> CF
+    CF --> WebS3
+    Browser -->|SSE / REST| AR
+    AR --> Bedrock
+    AR --> DDB
+    AR --> EvidenceS3
+    ECR -->|Image Pull| AR
 ```
 
-The agent (Claude on Bedrock) decides which checks to run and interprets results. The MCP server provides the tools — each one does a specific accessibility analysis using a real headless browser.
+The agent (Claude Sonnet 4 on Bedrock) decides which accessibility checks to run and interprets results. The MCP server provides the tools — each one does a specific WCAG analysis using a headless browser (Playwright + CDP).
 
 ## MCP Tools
 
@@ -116,7 +146,7 @@ packages/
 - [x] Frontend scaffold — React + Vite + TailwindCSS, URL input form, API proxy
 - [x] SSE streaming UI — submit audit, live progress with tool steps and timing
 - [x] Results view — findings cards with severity badges, WCAG criteria, evidence, summary stats
-- [ ] AWS deployment (CDK)
+- [x] AWS deployment (CDK, CI/CD, custom domain, deployment docs)
 
 ## References
 

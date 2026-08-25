@@ -8,6 +8,10 @@ import {
 } from 'aws-cdk-lib';
 import { CfnService } from 'aws-cdk-lib/aws-apprunner';
 import {
+  Certificate,
+  CertificateValidation,
+} from 'aws-cdk-lib/aws-certificatemanager';
+import {
   AllowedMethods,
   CachePolicy,
   Distribution,
@@ -20,6 +24,8 @@ import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
 import type { IRepository } from 'aws-cdk-lib/aws-ecr';
 import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { ARecord, HostedZone, RecordTarget } from 'aws-cdk-lib/aws-route53';
+import { CloudFrontTarget } from 'aws-cdk-lib/aws-route53-targets';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 
@@ -68,6 +74,11 @@ export class A11yAgentStack extends Stack {
     const bedrockInferenceProfileId = props.bedrockInferenceProfileId
       ?? `us.${BEDROCK_FOUNDATION_MODEL_ID}`;
     const imageTag = props.imageTag ?? 'latest';
+
+    // --- Optional custom domain configuration (CDK context) ---
+    const domainName = this.node.tryGetContext('domainName') as string | undefined;
+    const hostedZoneId = this.node.tryGetContext('hostedZoneId') as string | undefined;
+    const hostedZoneName = this.node.tryGetContext('hostedZoneName') as string | undefined;
 
     const ecrAccessRole = new Role(this, 'AppRunnerEcrAccessRole', {
       assumedBy: new ServicePrincipal('build.apprunner.amazonaws.com'),
@@ -121,8 +132,27 @@ export class A11yAgentStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    // --- CloudFront distribution (with optional custom domain) ---
+    let certificate: Certificate | undefined;
+    let zone: ReturnType<typeof HostedZone.fromHostedZoneAttributes> | undefined;
+
+    if (domainName && hostedZoneId && hostedZoneName) {
+      zone = HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
+        hostedZoneId,
+        zoneName: hostedZoneName,
+      });
+
+      certificate = new Certificate(this, 'WebCertificate', {
+        domainName,
+        validation: CertificateValidation.fromDns(zone),
+      });
+    }
+
     const webDistribution = new Distribution(this, 'WebDistribution', {
       defaultRootObject: 'index.html',
+      ...(domainName && certificate
+        ? { domainNames: [domainName], certificate }
+        : {}),
       defaultBehavior: {
         origin: S3BucketOrigin.withOriginAccessControl(webBucket),
         allowedMethods: AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
@@ -140,6 +170,15 @@ export class A11yAgentStack extends Stack {
       httpVersion: HttpVersion.HTTP2_AND_3,
       priceClass: PriceClass.PRICE_CLASS_100,
     });
+
+    // --- Route 53 alias record (only when custom domain is configured) ---
+    if (domainName && zone) {
+      new ARecord(this, 'WebAliasRecord', {
+        zone,
+        recordName: domainName,
+        target: RecordTarget.fromAlias(new CloudFrontTarget(webDistribution)),
+      });
+    }
 
     jobsTable.grantReadWriteData(instanceRole);
     evidenceBucket.grantReadWrite(instanceRole);
@@ -236,7 +275,9 @@ export class A11yAgentStack extends Stack {
 
     new CfnOutput(this, 'WebUrl', {
       description: 'HTTPS URL of the React SPA',
-      value: `https://${webDistribution.distributionDomainName}`,
+      value: domainName
+        ? `https://${domainName}`
+        : `https://${webDistribution.distributionDomainName}`,
     });
   }
 }
