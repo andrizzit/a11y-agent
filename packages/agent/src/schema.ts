@@ -13,7 +13,7 @@ export const FindingSchema = z.object({
 
 export const AuditReportSchema = z.object({
   url: z.string().describe('The URL that was audited'),
-  timestamp: z.string().describe('ISO 8601 timestamp of the audit'),
+  timestamp: z.string().describe('ISO 8601 timestamp of the audit (set by the server to the real run time; any model-provided value is overwritten)'),
   findings: z.array(FindingSchema).describe('List of accessibility issues found'),
   summary: z.object({
     total: z.number().describe('Total number of issues'),

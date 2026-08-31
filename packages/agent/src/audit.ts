@@ -70,6 +70,13 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
 
     const report = (result.structuredOutput as AuditReport) ?? null;
 
+    // The model cannot know the wall-clock time, so it hallucinates the
+    // `timestamp` schema field. Overwrite it with the real audit start time
+    // (ISO 8601) so the report reflects when the audit actually ran.
+    if (report) {
+      report.timestamp = new Date(start).toISOString();
+    }
+
     return {
       url,
       stopReason: result.stopReason,
