@@ -2,18 +2,43 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Agent, McpClient } from '@strands-agents/sdk';
 import { BedrockModel } from '@strands-agents/sdk/models/bedrock';
+import { AnthropicModel } from '@strands-agents/sdk/models/anthropic';
 import { SYSTEM_PROMPT } from './system-prompt.js';
 import { AuditReportSchema } from './schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const mcpServerPath = resolve(__dirname, '../../mcp-server/dist/index.js');
 
-const model = new BedrockModel({
-  modelId: process.env.BEDROCK_MODEL_ID ?? 'us.anthropic.claude-sonnet-4-20250514-v1:0',
-  region: process.env.AWS_REGION ?? 'us-east-1',
-  maxTokens: 4096,
-  temperature: 0.3,
-});
+// Model backend is selectable so the agent can run against Anthropic's direct
+// API (no AWS account throttle) as well as Bedrock. Defaults to Bedrock, so the
+// existing deployment path is unchanged unless MODEL_PROVIDER=anthropic is set.
+const modelProvider = process.env.MODEL_PROVIDER ?? 'bedrock';
+
+const model =
+  modelProvider === 'anthropic'
+    ? new AnthropicModel({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        modelId: process.env.ANTHROPIC_MODEL_ID ?? 'claude-sonnet-4-20250514',
+        maxTokens: 4096,
+        temperature: 0.3,
+        // Identity-linked ("all workspaces") keys must name the workspace on
+        // every request. Sent as a default header when ANTHROPIC_WORKSPACE_ID is set.
+        ...(process.env.ANTHROPIC_WORKSPACE_ID
+          ? {
+              clientConfig: {
+                defaultHeaders: {
+                  'anthropic-workspace-id': process.env.ANTHROPIC_WORKSPACE_ID,
+                },
+              },
+            }
+          : {}),
+      })
+    : new BedrockModel({
+        modelId: process.env.BEDROCK_MODEL_ID ?? 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+        region: process.env.AWS_REGION ?? 'us-east-1',
+        maxTokens: 4096,
+        temperature: 0.3,
+      });
 
 export async function createAgent() {
   const mcpServers = await McpClient.loadServers({
