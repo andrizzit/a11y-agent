@@ -18,7 +18,10 @@ const model =
   modelProvider === 'anthropic'
     ? new AnthropicModel({
         apiKey: process.env.ANTHROPIC_API_KEY,
-        modelId: process.env.ANTHROPIC_MODEL_ID ?? 'claude-sonnet-4-20250514',
+        // Anthropic's DIRECT API uses different model IDs than Bedrock and
+        // retired claude-sonnet-4-20250514 (2026-06-15) — sending it returns
+        // not_found_error. Default to the current, verified Sonnet 4.5.
+        modelId: process.env.ANTHROPIC_MODEL_ID ?? 'claude-sonnet-4-5-20250929',
         maxTokens: 4096,
         temperature: 0.3,
         // Identity-linked ("all workspaces") keys must name the workspace on
